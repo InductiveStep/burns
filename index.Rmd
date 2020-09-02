@@ -1,0 +1,59 @@
+---
+title: "Reanalysis of Adams et al. (2019)"
+author: "Andi Fugard (almost@gmail.com, @[inductivestep](https://twitter.com/InductiveStep))"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    self_contained: no
+    toc: no
+    toc_float: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+```
+
+
+```{r}
+library(readr)
+burndat <- read_csv("burndat.csv")
+```
+
+```{r}
+burnmat <- burndat[-1] %>%
+  as.matrix()
+rownames(burnmat) <- burndat$Diagnosis
+burnmat %>%
+  kable()
+```
+
+```{r}
+chisq.test(burnmat)
+```
+
+```{r}
+burnlong <- burndat %>%
+  pivot_longer(cols = -Diagnosis,
+               names_to = "Burn_Type",
+               values_to = "n")
+burnlonglong <- burnlong %>% uncount(weights = n)
+```
+
+```{r}
+library(rpart)
+library(rattle)
+```
+
+```{r fig.height=3, fig.width=8}
+res <- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
+fancyRpartPlot(res, type = 5, caption = "")
+```
+
+
+
+

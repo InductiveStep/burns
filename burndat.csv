@@ -1,0 +1,7 @@
+Diagnosis,Chemical,Electrical,Thermal contact,Thermal flame,Thermal liquid
+None,1,0,1,0,2
+Mood,1,1,0,17,6
+Psychoactive substance-linked,1,1,0,9,1
+Neurotic/stress/somatoform,1,0,0,1,0
+Schizophrenia/schizotypal/delusions,1,0,0,7,4
+Personality disorders,7,1,4,11,3
