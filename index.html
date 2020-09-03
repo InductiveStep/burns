@@ -267,8 +267,8 @@ burnmat %&gt;%
 ## 
 ## data:  burnmat
 ## X-squared = 27.428, df = 20, p-value = 0.1236</code></pre>
-<p>That doesn’t drop below the magical 0.05, alas. The cell counts are a little small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.</p>
-<p>We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96.</p>
+<p>That <em>p</em> doesn’t drop below the magical 0.05, alas, so the pattern is likely under the null of independence. However, the cell counts are small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which does not hold here.</p>
+<p>We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distributation under the null).</p>
 <pre class="r"><code>round(chires$stdres, 2) %&gt;% kable()</code></pre>
 <table>
 <thead>
@@ -332,17 +332,17 @@ burnmat %&gt;%
 </tr>
 </tbody>
 </table>
-<p>It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no dx are under represented in the thermal flame type.</p>
+<p>It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no mental health dx are under represented in the thermal flame type.</p>
 <div id="classification-tree" class="section level2">
 <h2>Classification tree</h2>
 <p>It’s a small dataset, but let’s plough on anyway and see what happens if we hand the data to a classification tree algorithm (from the <em>rpart</em> package).</p>
 <p>First, we need to transform the contingency table into a long dataset with one row per observation (patient).</p>
-<p>Pivot the frequencies data, so it’s one row per combination of dx and burn classification:</p>
+<p>Pivot the frequencies data longer, so it’s one row per combination of dx and burn classification:</p>
 <pre class="r"><code>burnlong &lt;- burndat %&gt;%
   pivot_longer(cols = -Diagnosis,
                names_to = &quot;Burn_Type&quot;,
                values_to = &quot;n&quot;)</code></pre>
-<p>Here’s the first 10 rows:</p>
+<p>Here are the first 10 rows:</p>
 <pre class="r"><code>head(burnlong, 10) %&gt;% kable()</code></pre>
 <table>
 <thead>
@@ -498,15 +498,16 @@ head(burnlonglong, 20) %&gt;% kable()</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Load the packages (I’m just using <em>rattle</em> for visualisation).</p>
-<pre class="r"><code>library(rpart)
-library(rattle)</code></pre>
+<p>Load the packages for classification trees.</p>
+<pre class="r"><code>library(rpart)  # fits the model
+library(rattle) # just for visualisation</code></pre>
 <p>I’m curious to know if the diagnosis can be predicted by burn type.</p>
 <pre class="r"><code>res &lt;- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
 fancyRpartPlot(res, type = 5, caption = &quot;&quot;)</code></pre>
 <p><img src="index_files/figure-html/unnamed-chunk-10-1.png" width="768" /></p>
-<p>Apparently so. People with a chemical or thermal contact burns were most likely to have a PD dx (65% of cases with those burn types), whereas those with electrical, thermal flame, or thermal liquid burns were most likely to have a mood disorder (38% of cases with that type compared to 23% with a PD dx).</p>
-<p>Note how the PD prediction is exactly what we spotted from the adjusted residuals.</p>
+<p>Apparently so.</p>
+<p>People with a chemical or thermal contact burns were most likely to have a PD dx (65% of cases with those burn types), whereas those with electrical, thermal flame, or thermal liquid burns were most likely to have a mood disorder (38% of cases with that type compared to 23% with a PD dx).</p>
+<p>Note how the PD prediction is exactly what we spotted from the standardised residuals.</p>
 <p>Those rows of six numbers on the leaves of the tree are proportions of dx, in alphabetical order, as per:</p>
 <pre class="r"><code>burnlonglong %&gt;%
   group_by(Diagnosis) %&gt;%

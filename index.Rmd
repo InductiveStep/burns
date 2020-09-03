@@ -42,16 +42,15 @@ chires <- chisq.test(burnmat) # just saving this so I can use later
 chires
 ```
 
-That doesn't drop below the magical 0.05, alas. The cell counts are a little small, so the assumptions of the test aren't satisfied. At this point many would use Fisher's exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.
+That *p* doesn't drop below the magical 0.05, alas, so the pattern is likely under the null of independence. However, the cell counts are small, so the assumptions of the test aren't satisfied. At this point many would use Fisher's exact test; however, that would be Very Wrong since it assumes fixed marginals which does not hold here.
 
-We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96.
-
+We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distributation under the null).
 
 ```{r}
 round(chires$stdres, 2) %>% kable()
 ```
 
-It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no dx are under represented in the thermal flame type.
+It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no mental health dx are under represented in the thermal flame type.
 
 
 
@@ -61,7 +60,7 @@ It's a small dataset, but let's plough on anyway and see what happens if we hand
 
 First, we need to transform the contingency table into a long dataset with one row per observation (patient).
 
-Pivot the frequencies data, so it's one row per combination of dx and burn classification:
+Pivot the frequencies data longer, so it's one row per combination of dx and burn classification:
 
 ```{r}
 burnlong <- burndat %>%
@@ -70,7 +69,7 @@ burnlong <- burndat %>%
                values_to = "n")
 ```
 
-Here's the first 10 rows:
+Here are the first 10 rows:
 
 ```{r}
 head(burnlong, 10) %>% kable()
@@ -83,11 +82,11 @@ burnlonglong <- burnlong %>% uncount(weights = n)
 head(burnlonglong, 20) %>% kable()
 ```
 
-Load the packages (I'm just using *rattle* for visualisation).
+Load the packages for classification trees.
 
 ```{r message=FALSE}
-library(rpart)
-library(rattle)
+library(rpart)  # fits the model
+library(rattle) # just for visualisation
 ```
 
 I'm curious to know if the diagnosis can be predicted by burn type.
@@ -97,9 +96,11 @@ res <- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
 fancyRpartPlot(res, type = 5, caption = "")
 ```
 
-Apparently so. People with a chemical or thermal contact burns were most likely to have a PD dx (65% of cases with those burn types), whereas those with electrical, thermal flame, or thermal liquid burns were most likely to have a mood disorder (38% of cases with that type compared to 23% with a PD dx).
+Apparently so.
 
-Note how the PD prediction is exactly what we spotted from the adjusted residuals.
+People with a chemical or thermal contact burns were most likely to have a PD dx (65% of cases with those burn types), whereas those with electrical, thermal flame, or thermal liquid burns were most likely to have a mood disorder (38% of cases with that type compared to 23% with a PD dx).
+
+Note how the PD prediction is exactly what we spotted from the standardised residuals.
 
 Those rows of six numbers on the leaves of the tree are proportions of dx, in alphabetical order, as per:
 
