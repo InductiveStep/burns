@@ -50,7 +50,7 @@ We could also have a look at standardised residuals and see if any are above 1.9
 round(chires$stdres, 2) %>% kable()
 ```
 
-It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no mental health dx are under represented in the thermal flame type.
+People with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Those with *no* mental health dx are *under* represented in the thermal flame type.
 
 
 
