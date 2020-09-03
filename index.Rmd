@@ -13,16 +13,19 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(knitr)
 ```
 
+Read in the contingency table from Table 6 of [Adams, Locke, and Warner (2019)](https://doi.org/10.1016/j.burns.2019.04.005).
 
-```{r}
+```{r message=FALSE}
 library(readr)
 burndat <- read_csv("burndat.csv")
 ```
+
+To run a $\chi^2$-test on this, we first need to convert it to a matrix:
 
 ```{r}
 burnmat <- burndat[-1] %>%
@@ -36,24 +39,53 @@ burnmat %>%
 chisq.test(burnmat)
 ```
 
+The cell counts are a little small, so the assumptions of the test aren't satisfied. At this point many would use Fisher's exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.
+
+Let's go on anyway and see what happens if we hand the data to a classification tree algorithm (from the {rpart} package).
+
+First, we need to transform the contingency table into a long dataset with one row per observation (patient).
+
+Pivot the frequencies data, so it's one row per combination of dx and burn classification:
+
 ```{r}
 burnlong <- burndat %>%
   pivot_longer(cols = -Diagnosis,
                names_to = "Burn_Type",
                values_to = "n")
-burnlonglong <- burnlong %>% uncount(weights = n)
+head(burnlong, 10) %>% kable()
 ```
 
+Next, "uncount" this, so the frequencies expand to one row per observation:
+
 ```{r}
+burnlonglong <- burnlong %>% uncount(weights = n)
+head(burnlonglong, 20) %>% kable()
+```
+
+Load the packages (I'm just using {rattle} for visualisation).
+
+```{r message=FALSE}
 library(rpart)
 library(rattle)
 ```
+
+I'm curious to know if (conditioning on everyone who has a mental health dx), the diagnosis can be predicted by burn type.
 
 ```{r fig.height=3, fig.width=8}
 res <- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
 fancyRpartPlot(res, type = 5, caption = "")
 ```
 
+Apparently so. People with a PD dx were more likely to have chemical or thermal contact burns (65%) versus the other burn types (23%).
 
+Those numbers on the leaves of the tree are proportions, in alphabetical order, as per:
+
+```{r}
+burnlonglong %>%
+  group_by(Diagnosis) %>%
+  summarise(n = n()) %>% kable()
+```
+
+I'd be wary of generalising given this small dataset, but it gives a good sense of the main pattern visible in the sample.
 
 

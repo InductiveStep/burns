@@ -185,27 +185,12 @@ summary {
 </div>
 
 
-<pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## -- Attaching packages -------------------------------------------------- tidyverse 1.3.0 --</code></pre>
-<pre><code>## v ggplot2 3.3.2     v purrr   0.3.4
-## v tibble  3.0.3     v dplyr   1.0.2
-## v tidyr   1.1.2     v stringr 1.4.0
-## v readr   1.3.1     v forcats 0.5.0</code></pre>
-<pre><code>## -- Conflicts ----------------------------------------------------- tidyverse_conflicts() --
-## x dplyr::filter() masks stats::filter()
-## x dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(knitr)</code></pre>
+<pre class="r"><code>library(tidyverse)
+library(knitr)</code></pre>
+<p>Read in the contingency table from Table 6 of <a href="https://doi.org/10.1016/j.burns.2019.04.005">Adams, Locke, and Warner (2019)</a>.</p>
 <pre class="r"><code>library(readr)
 burndat &lt;- read_csv(&quot;burndat.csv&quot;)</code></pre>
-<pre><code>## Parsed with column specification:
-## cols(
-##   Diagnosis = col_character(),
-##   Chemical = col_double(),
-##   Electrical = col_double(),
-##   `Thermal contact` = col_double(),
-##   `Thermal flame` = col_double(),
-##   `Thermal liquid` = col_double()
-## )</code></pre>
+<p>To run a <span class="math inline">\(\chi^2\)</span>-test on this, we first need to convert it to a matrix:</p>
 <pre class="r"><code>burnmat &lt;- burndat[-1] %&gt;%
   as.matrix()
 rownames(burnmat) &lt;- burndat$Diagnosis
@@ -232,7 +217,7 @@ burnmat %&gt;%
 <td align="right">2</td>
 </tr>
 <tr class="even">
-<td align="left">Mood</td>
+<td align="left">Mood disorders</td>
 <td align="right">1</td>
 <td align="right">1</td>
 <td align="right">0</td>
@@ -280,20 +265,217 @@ burnmat %&gt;%
 ## 
 ## data:  burnmat
 ## X-squared = 27.428, df = 20, p-value = 0.1236</code></pre>
+<p>The cell counts are a little small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.</p>
+<p>Let’s go on anyway and see what happens if we hand the data to a classification tree algorithm (from the {rpart} package).</p>
+<p>First, we need to transform the contingency table into a long dataset with one row per observation (patient).</p>
+<p>Pivot the frequencies data, so it’s one row per combination of dx and burn classification:</p>
 <pre class="r"><code>burnlong &lt;- burndat %&gt;%
   pivot_longer(cols = -Diagnosis,
                names_to = &quot;Burn_Type&quot;,
                values_to = &quot;n&quot;)
-burnlonglong &lt;- burnlong %&gt;% uncount(weights = n)</code></pre>
+head(burnlong, 10) %&gt;% kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Diagnosis</th>
+<th align="left">Burn_Type</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">None</td>
+<td align="left">Chemical</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">None</td>
+<td align="left">Electrical</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">None</td>
+<td align="left">Thermal contact</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">None</td>
+<td align="left">Thermal flame</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">None</td>
+<td align="left">Thermal liquid</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Chemical</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Electrical</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal contact</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+<td align="right">17</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal liquid</td>
+<td align="right">6</td>
+</tr>
+</tbody>
+</table>
+<p>Next, “uncount” this, so the frequencies expand to one row per observation:</p>
+<pre class="r"><code>burnlonglong &lt;- burnlong %&gt;% uncount(weights = n)
+head(burnlonglong, 20) %&gt;% kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Diagnosis</th>
+<th align="left">Burn_Type</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">None</td>
+<td align="left">Chemical</td>
+</tr>
+<tr class="even">
+<td align="left">None</td>
+<td align="left">Thermal contact</td>
+</tr>
+<tr class="odd">
+<td align="left">None</td>
+<td align="left">Thermal liquid</td>
+</tr>
+<tr class="even">
+<td align="left">None</td>
+<td align="left">Thermal liquid</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Chemical</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Electrical</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="left">Thermal flame</td>
+</tr>
+</tbody>
+</table>
+<p>Load the packages (I’m just using {rattle} for visualisation).</p>
 <pre class="r"><code>library(rpart)
 library(rattle)</code></pre>
-<pre><code>## Loading required package: bitops</code></pre>
-<pre><code>## Rattle: A free graphical interface for data science with R.
-## Version 5.4.0 Copyright (c) 2006-2020 Togaware Pty Ltd.
-## Type &#39;rattle()&#39; to shake, rattle, and roll your data.</code></pre>
+<p>I’m curious to know if (conditioning on everyone who has a mental health dx), the diagnosis can be predicted by burn type.</p>
 <pre class="r"><code>res &lt;- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
 fancyRpartPlot(res, type = 5, caption = &quot;&quot;)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-7-1.png" width="768" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-8-1.png" width="768" /></p>
+<p>Apparently so. People with a PD dx were more likely to have chemical or thermal contact burns (65%) versus the other burn types (23%).</p>
+<p>Those numbers on the leaves of the tree are proportions, in alphabetical order, as per:</p>
+<pre class="r"><code>burnlonglong %&gt;%
+  group_by(Diagnosis) %&gt;%
+  summarise(n = n()) %&gt;% kable()</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Diagnosis</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mood disorders</td>
+<td align="right">25</td>
+</tr>
+<tr class="even">
+<td align="left">Neurotic/stress/somatoform</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">None</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">Personality disorders</td>
+<td align="right">26</td>
+</tr>
+<tr class="odd">
+<td align="left">Psychoactive substance-linked</td>
+<td align="right">12</td>
+</tr>
+<tr class="even">
+<td align="left">Schizophrenia/schizotypal/delusions</td>
+<td align="right">12</td>
+</tr>
+</tbody>
+</table>
+<p>I’d be wary of generalising given this small dataset, but it gives a good sense of the main pattern visible in the sample.</p>
 
 
 
