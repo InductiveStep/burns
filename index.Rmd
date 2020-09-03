@@ -44,7 +44,7 @@ chires
 
 That *p* doesn't drop below the magical 0.05, alas, so the pattern is likely under the null of independence. However, the cell counts are small, so the assumptions of the test aren't satisfied. At this point many would use Fisher's exact test; however, that would be Very Wrong since it assumes fixed marginals which does not hold here.
 
-We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distributation under the null).
+We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distribution under the null).
 
 ```{r}
 round(chires$stdres, 2) %>% kable()
