@@ -258,22 +258,92 @@ burnmat %&gt;%
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>chisq.test(burnmat)</code></pre>
+<p>Now the test:</p>
+<pre class="r"><code>chires &lt;- chisq.test(burnmat) # just saving this so I can use later</code></pre>
 <pre><code>## Warning in chisq.test(burnmat): Chi-squared approximation may be incorrect</code></pre>
+<pre class="r"><code>chires</code></pre>
 <pre><code>## 
 ##  Pearson&#39;s Chi-squared test
 ## 
 ## data:  burnmat
 ## X-squared = 27.428, df = 20, p-value = 0.1236</code></pre>
-<p>The cell counts are a little small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.</p>
-<p>Let’s go on anyway and see what happens if we hand the data to a classification tree algorithm (from the {rpart} package).</p>
+<p>That doesn’t drop below the magical 0.05, alas. The cell counts are a little small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which is not the case here.</p>
+<p>We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96.</p>
+<pre class="r"><code>round(chires$stdres, 2) %&gt;% kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left"></th>
+<th align="right">Chemical</th>
+<th align="right">Electrical</th>
+<th align="right">Thermal contact</th>
+<th align="right">Thermal flame</th>
+<th align="right">Thermal liquid</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">None</td>
+<td align="right">0.59</td>
+<td align="right">-0.40</td>
+<td align="right">1.60</td>
+<td align="right">-2.29</td>
+<td align="right">1.56</td>
+</tr>
+<tr class="even">
+<td align="left">Mood disorders</td>
+<td align="right">-1.83</td>
+<td align="right">0.09</td>
+<td align="right">-1.54</td>
+<td align="right">1.51</td>
+<td align="right">0.64</td>
+</tr>
+<tr class="odd">
+<td align="left">Psychoactive substance-linked</td>
+<td align="right">-0.68</td>
+<td align="right">0.92</td>
+<td align="right">-0.96</td>
+<td align="right">1.47</td>
+<td align="right">-1.08</td>
+</tr>
+<tr class="even">
+<td align="left">Neurotic/stress/somatoform</td>
+<td align="right">1.42</td>
+<td align="right">-0.28</td>
+<td align="right">-0.37</td>
+<td align="right">-0.16</td>
+<td align="right">-0.71</td>
+</tr>
+<tr class="odd">
+<td align="left">Schizophrenia/schizotypal/delusions</td>
+<td align="right">-0.68</td>
+<td align="right">-0.74</td>
+<td align="right">-0.96</td>
+<td align="right">0.21</td>
+<td align="right">1.28</td>
+</tr>
+<tr class="even">
+<td align="left">Personality disorders</td>
+<td align="right">2.11</td>
+<td align="right">0.05</td>
+<td align="right">2.37</td>
+<td align="right">-1.65</td>
+<td align="right">-1.28</td>
+</tr>
+</tbody>
+</table>
+<p>It looks like people with a PD dx are over represented in chemical and thermal contact burns than would be expected if dx and burn type were independent. Similarly, those with no dx are under represented in the thermal flame type.</p>
+<div id="classification-tree" class="section level2">
+<h2>Classification tree</h2>
+<p>It’s a small dataset, but let’s plough on anyway and see what happens if we hand the data to a classification tree algorithm (from the <em>rpart</em> package).</p>
 <p>First, we need to transform the contingency table into a long dataset with one row per observation (patient).</p>
 <p>Pivot the frequencies data, so it’s one row per combination of dx and burn classification:</p>
 <pre class="r"><code>burnlong &lt;- burndat %&gt;%
   pivot_longer(cols = -Diagnosis,
                names_to = &quot;Burn_Type&quot;,
-               values_to = &quot;n&quot;)
-head(burnlong, 10) %&gt;% kable()</code></pre>
+               values_to = &quot;n&quot;)</code></pre>
+<p>Here’s the first 10 rows:</p>
+<pre class="r"><code>head(burnlong, 10) %&gt;% kable()</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -335,7 +405,7 @@ head(burnlong, 10) %&gt;% kable()</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Next, “uncount” this, so the frequencies expand to one row per observation:</p>
+<p>Next, “uncount” this, so the frequencies expand to one row per observation - and a peek at the first 20 rows:</p>
 <pre class="r"><code>burnlonglong &lt;- burnlong %&gt;% uncount(weights = n)
 head(burnlonglong, 20) %&gt;% kable()</code></pre>
 <table>
@@ -428,19 +498,20 @@ head(burnlonglong, 20) %&gt;% kable()</code></pre>
 </tr>
 </tbody>
 </table>
-<p>Load the packages (I’m just using {rattle} for visualisation).</p>
+<p>Load the packages (I’m just using <em>rattle</em> for visualisation).</p>
 <pre class="r"><code>library(rpart)
 library(rattle)</code></pre>
-<p>I’m curious to know if (conditioning on everyone who has a mental health dx), the diagnosis can be predicted by burn type.</p>
+<p>I’m curious to know if the diagnosis can be predicted by burn type.</p>
 <pre class="r"><code>res &lt;- rpart(Diagnosis ~ Burn_Type, data = burnlonglong)
 fancyRpartPlot(res, type = 5, caption = &quot;&quot;)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-8-1.png" width="768" /></p>
-<p>Apparently so. People with a PD dx were more likely to have chemical or thermal contact burns (65%) versus the other burn types (23%).</p>
-<p>Those numbers on the leaves of the tree are proportions, in alphabetical order, as per:</p>
+<p><img src="index_files/figure-html/unnamed-chunk-10-1.png" width="768" /></p>
+<p>Apparently so. People with a chemical or thermal contact burns were most likely to have a PD dx (65% of cases with those burn types), whereas those with electrical, thermal flame, or thermal liquid burns were most likely to have a mood disorder (38% of cases with that type compared to 23% with a PD dx).</p>
+<p>Note how the PD prediction is exactly what we spotted from the adjusted residuals.</p>
+<p>Those rows of six numbers on the leaves of the tree are proportions of dx, in alphabetical order, as per:</p>
 <pre class="r"><code>burnlonglong %&gt;%
   group_by(Diagnosis) %&gt;%
-  summarise(n = n()) %&gt;% kable()</code></pre>
-<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+  summarise(n = n()) %&gt;%
+  kable()</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -475,7 +546,43 @@ fancyRpartPlot(res, type = 5, caption = &quot;&quot;)</code></pre>
 </tr>
 </tbody>
 </table>
-<p>I’d be wary of generalising given this small dataset, but it gives a good sense of the main pattern visible in the sample.</p>
+<p>The single percentages are how many observations, total, are in the cell. For instance, the 21% is from 12+5 = 17 divided by the total number of observations, 81.</p>
+<pre class="r"><code>burnlonglong %&gt;%
+  group_by(Burn_Type) %&gt;%
+  summarise(n = n()) %&gt;%
+  kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Burn_Type</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Chemical</td>
+<td align="right">12</td>
+</tr>
+<tr class="even">
+<td align="left">Electrical</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Thermal contact</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="left">Thermal flame</td>
+<td align="right">45</td>
+</tr>
+<tr class="odd">
+<td align="left">Thermal liquid</td>
+<td align="right">16</td>
+</tr>
+</tbody>
+</table>
+<p>I’d be wary of generalising given this small dataset, but it gives a good sense of the main patterns visible in the sample.</p>
+</div>
 
 
 
