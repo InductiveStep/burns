@@ -11,7 +11,7 @@
 
 <meta name="author" content="Andi Fugard (almost@gmail.com, @inductivestep)" />
 
-<meta name="date" content="2020-09-03" />
+<meta name="date" content="2020-09-04" />
 
 <title>Reanalysis of Adams et al. (2019)</title>
 
@@ -180,7 +180,7 @@ summary {
 
 <h1 class="title toc-ignore">Reanalysis of Adams et al. (2019)</h1>
 <h4 class="author">Andi Fugard (<a href="mailto:almost@gmail.com" class="email">almost@gmail.com</a>, @<a href="https://twitter.com/InductiveStep">inductivestep</a>)</h4>
-<h4 class="date">03 September 2020</h4>
+<h4 class="date">04 September 2020</h4>
 
 </div>
 
@@ -268,7 +268,7 @@ burnmat %&gt;%
 ## data:  burnmat
 ## X-squared = 27.428, df = 20, p-value = 0.1236</code></pre>
 <p>That <em>p</em> doesn’t drop below the magical 0.05, alas, so the pattern is likely under the null of independence. However, the cell counts are small, so the assumptions of the test aren’t satisfied. At this point many would use Fisher’s exact test; however, that would be Very Wrong since it assumes fixed marginals which does not hold here.</p>
-<p>We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distributation under the null).</p>
+<p>We could also have a look at standardised residuals and see if any are above 1.96 or below -1.96 (they have a standard normal distribution under the null).</p>
 <pre class="r"><code>round(chires$stdres, 2) %&gt;% kable()</code></pre>
 <table>
 <thead>
